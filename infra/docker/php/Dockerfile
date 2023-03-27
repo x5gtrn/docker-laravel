@@ -1,4 +1,4 @@
-FROM php:8.1-fpm-bullseye AS base
+FROM php:7.4-fpm-bullseye AS base
 
 WORKDIR /workspace
 
@@ -13,6 +13,13 @@ ENV TZ=UTC \
   COMPOSER_HOME=/composer
 
 COPY --from=composer:2.4 /usr/bin/composer /usr/bin/composer
+
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
+RUN apt-get install -y nodejs
+
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN apt-get update && apt-get install yarn
 
 RUN apt-get update \
   && apt-get -y install --no-install-recommends \
@@ -52,5 +59,7 @@ COPY ./src /workspace
 
 RUN composer install -q -n --no-ansi --no-dev --no-scripts --no-progress --prefer-dist \
   && chmod -R 777 storage bootstrap/cache \
+  && yarn cache clean --force && yarn install \
+  && yarn run dev \
   && php artisan optimize:clear \
   && php artisan optimize
